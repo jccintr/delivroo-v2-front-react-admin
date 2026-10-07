@@ -2,6 +2,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { centsToInput, parseBRLToCents } from '../lib/money.js';
 import Icon from './Icon.jsx';
 
+// deve acompanhar IMAGE_MAX_MB da API (padrão 3); a API é quem decide de fato
+const MAX_IMAGE_MB = Number(import.meta.env.VITE_IMAGE_MAX_MB) || 3;
+
 export const cx = (...c) => c.filter(Boolean).join(' ');
 
 /** marca do Delivroo (mesmo símbolo da landing page) */
@@ -207,7 +210,7 @@ export function ImageUpload({ url, onUpload, onRemove, shape = 'square', size = 
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setErr('Imagem muito grande (máx. 5 MB).'); return; }
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) { setErr(`Imagem muito grande (máx. ${MAX_IMAGE_MB} MB).`); return; }
     setErr(''); setBusy(true);
     try { await onUpload(file); } catch (ex) { setErr(ex.message); } finally { setBusy(false); }
   }
@@ -227,7 +230,7 @@ export function ImageUpload({ url, onUpload, onRemove, shape = 'square', size = 
           <Button kind="secondary" size="sm" onClick={() => ref.current?.click()} disabled={busy}>{url ? 'Trocar' : 'Enviar'} {label.toLowerCase()}</Button>
           {url && <Button kind="ghost" size="sm" onClick={remove} disabled={busy}>Remover</Button>}
         </div>
-        {err ? <p className="mt-1 text-xs font-medium text-cherry">{err}</p> : <p className="mt-1 text-xs text-ink-soft">JPG, PNG ou WebP até 5 MB.</p>}
+        {err ? <p className="mt-1 text-xs font-medium text-cherry">{err}</p> : <p className="mt-1 text-xs text-ink-soft">JPG, PNG ou WebP até {MAX_IMAGE_MB} MB.</p>}
       </div>
       <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} data-testid="image-input" />
     </div>

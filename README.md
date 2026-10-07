@@ -27,7 +27,7 @@ Deploy estático: `vercel.json` e `public/_redirects` já cuidam do roteamento S
 
 ## O que o painel faz
 
-- **Pedidos** — quadro com colunas *Novos / Em preparo / Prontos-A caminho / Finalizados* (no celular vira abas). Atualiza sozinho a cada 12 s, com **aviso sonoro** (botão *Som*), selo no menu e contador no título da aba. Botões seguem o fluxo da API (entrega x retirada); recusar/cancelar pedem motivo. Cada mudança oferece **“Avisar no WhatsApp”** com a mensagem da loja. Detalhe com itens, opções, troco, histórico, **impressão de cupom 80 mm** e histórico por período/status com paginação.
+- **Pedidos** — quadro com colunas *Novos / Em preparo / Prontos-A caminho / Finalizados* (no celular vira abas). Atualiza **em tempo real (SSE)** — pedido novo aparece na hora, também em outros aparelhos logados — com **aviso sonoro** (botão *Som*), selo no menu e contador no título da aba. Botões seguem o fluxo da API (entrega x retirada); recusar/cancelar pedem motivo. Cada mudança oferece **“Avisar no WhatsApp”** com a mensagem da loja. Detalhe com itens, opções, troco, histórico, **impressão de cupom 80 mm** e histórico por período/status com paginação.
 - **Resumo** — faturamento, pedidos, ticket médio, não concluídos, faturamento por dia, pedidos por hora, mais vendidos, entrega x retirada, pagamentos e status (hoje, ontem, 7/30 dias, mês).
 - **Cardápio** — produtos (foto, categoria, descrição, vários tamanhos/preços, disponível), categorias (ordem, ativar, renomear), e **grupos de adicionais e obrigatórios**: regra de escolha (obrigatório/opcional, mínimo, máximo, repetição da mesma opção, cobrar soma ou a mais cara), opções com foto, preço, padrão e **preço por tamanho**; vínculo dos grupos aos produtos.
 - **Configurações** — link da loja (copiar/abrir), logo, nome, cores do cardápio, endereço, tempos de espera, PIX, horários de funcionamento (várias faixas por dia), bairros e taxas, formas de pagamento e mensagens de WhatsApp por status.
@@ -37,7 +37,7 @@ Deploy estático: `vercel.json` e `public/_redirects` já cuidam do roteamento S
 
 ```
 src/api        cliente HTTP (token Bearer, 401 desloga) e wrappers dos endpoints
-src/context    Auth, UI (toasts/confirmação) e Orders (polling + som)
+src/context    Auth, UI (toasts/confirmação) e Orders (SSE + polling de segurança + som)
 src/components UI kit (Button, Modal/Sheet, Field, MoneyInput, ImageUpload…), AppShell, peças de pedido
 src/pages      Pedidos, Resumo, menu/* (cardápio), settings/*
 src/lib        dinheiro (centavos), telefone, datas, fluxo de status, regras de grupos
@@ -50,5 +50,6 @@ Identidade visual (cores, fonte Baloo 2 e ícone) vem da landing page do Delivro
 
 - Valores em reais são convertidos para **centavos** antes de ir para a API.
 - O som exige um clique do usuário (política dos navegadores): ligue o botão *Som* ao abrir o painel.
-- Ainda não há WebSocket/push: a atualização é por polling (12 s e ao voltar para a aba).
+- Tempo real por **SSE**: `GET /api/stores/events` com token curto (`src/api/sse.js` reconecta com espera crescente e pega token novo). Indicador **Ao vivo / Reconectando…** no menu. Sem conexão ao vivo o painel volta a buscar a cada 12 s; com ela, só confere a cada 60 s por segurança.
+- Push com o painel fechado (Web Push) ainda não existe: o aviso exige a aba aberta.
 - Upload de imagens depende do Cloudinary configurado na API.

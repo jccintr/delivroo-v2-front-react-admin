@@ -48,6 +48,22 @@ function SoundButton() {
   );
 }
 
+/** estado da conexão em tempo real (SSE) */
+function LiveStatus({ className }) {
+  const { conn } = useOrders();
+  const map = {
+    live: ['bg-mint', 'Ao vivo', 'Pedidos chegam na hora.'],
+    connecting: ['bg-butter', 'Conectando…', 'Abrindo a conexão em tempo real.'],
+    offline: ['bg-cherry', 'Reconectando…', 'Sem tempo real: atualizando a cada poucos segundos até reconectar.'],
+  };
+  const [dot, label, hint] = map[conn] ?? map.connecting;
+  return (
+    <span title={hint} data-testid="live-status" data-conn={conn} className={cx('inline-flex items-center gap-1.5 text-xs font-semibold', className)}>
+      <span className={cx('size-2 rounded-full', dot, conn === 'live' && 'animate-pulse')} /><span>{label}</span>
+    </span>
+  );
+}
+
 function Badge({ n }) {
   if (!n) return null;
   return <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-orange px-1.5 text-xs font-extrabold text-white animate-ring">{n}</span>;
@@ -75,6 +91,7 @@ export default function AppShell() {
           ))}
         </nav>
         <div className="space-y-2 p-4">
+          <LiveStatus className="px-1 text-white/60" />
           <div className="flex gap-2"><OpenSwitch /><SoundButton /></div>
           <button onClick={logout} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white/60 hover:bg-white/10 hover:text-white"><Icon name="logout" className="size-4" /> Sair</button>
         </div>
@@ -86,6 +103,7 @@ export default function AppShell() {
           <div className="flex min-w-0 items-center gap-2">
             {store.logoUrl ? <img src={store.logoUrl} alt="" className="size-8 rounded-full object-cover" /> : <span className="shrink-0"><Logo light className="[&>span]:hidden" /></span>}
             <span className="truncate font-display text-lg font-extrabold">{store.name}</span>
+            <LiveStatus className="shrink-0 text-white/70 [&>span:last-child]:hidden sm:[&>span:last-child]:inline" />
           </div>
           <div className="flex shrink-0 items-center gap-2"><SoundButton /><OpenSwitch compact /></div>
         </header>

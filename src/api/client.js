@@ -2,6 +2,9 @@
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 const TOKEN_KEY = 'delivroo:admin:token';
 
+/** URL absoluta/relativa de um caminho da API (usada pelo EventSource) */
+export const apiUrl = (path) => `${BASE}${path}`;
+
 export class ApiError extends Error {
   constructor(status, message, extra = {}) {
     super(message);

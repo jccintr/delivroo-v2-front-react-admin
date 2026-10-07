@@ -1,4 +1,7 @@
-import { request, uploadFile } from './client.js';
+import { request, uploadFile, apiUrl } from './client.js';
+
+/** URL do fluxo SSE da loja (token curto na query; EventSource não envia headers) */
+export const storeEventsUrl = async () => `${apiUrl('/api/stores/events')}?token=${encodeURIComponent((await Store.eventsToken()).token)}`;
 
 const j = (method) => (path, body) => request(path, { method, body });
 const post = j('POST'); const patch = j('PATCH'); const put = j('PUT'); const del = j('DELETE');
@@ -10,6 +13,7 @@ export const Auth = {
 };
 
 export const Store = {
+  eventsToken: () => request('/api/stores/events-token', { method: 'POST' }),
   me: () => request('/api/stores/me'),
   update: (data) => patch('/api/stores/me', data),
   setOpen: (isOpen) => patch('/api/stores/me/status', { isOpen }),
