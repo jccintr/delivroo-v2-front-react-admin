@@ -13,7 +13,7 @@ export default function ProfileSection() {
   const { store, setStore } = useAuth();
   const { success, error } = useUI();
   const { data: cities } = useResource(() => Auth.cities(), []);
-  const a = store.address;
+  const a = store.address ?? {};
   const [f, setF] = useState({
     name: store.name, phone: maskPhone(store.phone), cityId: String(store.cityId),
     street: a.street ?? '', number: a.number ?? '', complement: a.complement ?? '', district: a.district ?? '', zipCode: a.zipCode ?? '',
@@ -61,8 +61,9 @@ export default function ProfileSection() {
       <Card className="space-y-4 p-4">
         <h2 className="font-display text-lg font-bold">Identidade</h2>
         <ImageUpload label="Logo" shape="round" size="size-24" url={store.logoUrl}
-          onUpload={async (file) => setStore(await Store.uploadLogo(file))}
-          onRemove={async () => setStore(await Store.removeLogo())} />
+          // a API devolve só { message, logoUrl } no envio e 204 na remoção: mescla na loja (não substitui!)
+          onUpload={async (file) => { const r = await Store.uploadLogo(file); setStore((s) => ({ ...s, logoUrl: r.logoUrl })); }}
+          onRemove={async () => { await Store.removeLogo(); setStore((s) => ({ ...s, logoUrl: null })); }} />
         <Field label="Nome da loja">{(id) => <Input id={id} required minLength={3} maxLength={120} value={f.name} onChange={set('name')} />}</Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="WhatsApp / telefone">{(id) => <Input id={id} required inputMode="tel" value={f.phone} onChange={set('phone')} />}</Field>
