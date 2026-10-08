@@ -24,7 +24,7 @@ export function Logo({ light = false, className = '' }) {
   return (
     <span className={cx('inline-flex items-center gap-2', className)}>
       <LogoMark />
-      <span className={cx('font-display text-2xl font-extrabold leading-none tracking-tight', light ? 'text-white' : 'text-ink')}>delivroo</span>
+      <span className={cx('font-display text-2xl font-extrabold leading-none tracking-tight', light ? 'text-white' : 'text-ink')}>Delivroo</span>
     </span>
   );
 }

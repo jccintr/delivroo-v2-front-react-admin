@@ -10,6 +10,8 @@ export const Auth = {
   login: (email, password) => request('/api/stores/login', { method: 'POST', body: { email, password }, auth: false }),
   register: (data) => request('/api/stores/register', { method: 'POST', body: data, auth: false }),
   cities: () => request('/api/cities', { auth: false }),
+  /** cardápios iniciais do cadastro: "Loja vazia" + modelos prontos */
+  templates: () => request('/api/stores/templates', { auth: false }),
 };
 
 export const Store = {

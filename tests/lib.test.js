@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanPrices, describeGroup, priceRange, validateGroup } from '../src/lib/groups.js';
+import { cleanPrices, describeGroup, groupHasPrices, hasMenuRange, menuFromPrice, priceRange, pricedByGroup, productPriceLabel, validateGroup } from '../src/lib/groups.js';
 import { actionsFor } from '../src/lib/orderStatus.js';
 import { centsToInput, formatBRL, parseBRLToCents } from '../src/lib/money.js';
 import { maskPhone, whatsappLink } from '../src/lib/phone.js';
@@ -59,6 +59,43 @@ describe('grupos de opções', () => {
     const v = [{ priceCents: 1000, active: true }, { priceCents: 2000, active: true }, { priceCents: 9999, active: false }];
     expect(priceRange(v, (c) => `R${c}`)).toBe('R1000 – R2000');
     expect(priceRange([{ priceCents: 500, active: true }], (c) => `R${c}`)).toBe('R500');
+  });
+});
+
+describe('preço no cardápio (pizza e afins)', () => {
+  const fmt = (c) => `R${c}`;
+  const flavors = {
+    id: 1, name: 'Sabores', minSelect: 1, maxSelect: 2, maxPerOption: 1, pricingMode: 'HIGHEST',
+    options: [
+      { id: 1, priceCents: 0, prices: { 10: 3500, 11: 4500 }, active: true },
+      { id: 2, priceCents: 0, prices: { 10: 4200, 11: 5500 }, active: true },
+    ],
+  };
+  const sizes = [{ id: 10, priceCents: 0, active: true }, { id: 11, priceCents: 0, active: true }];
+
+  it('preço base zerado: vale o sabor mais barato do menor tamanho', () => {
+    expect(menuFromPrice(sizes, [flavors])).toBe(3500);
+    expect(hasMenuRange(sizes, [flavors])).toBe(true);
+  });
+  it('preço base é somado ao das opções', () => {
+    expect(menuFromPrice([{ id: 10, priceCents: 1000, active: true }], [flavors])).toBe(4500);
+  });
+  it('opção sem preço por tamanho usa o preço padrão; inativos são ignorados', () => {
+    const extra = { ...flavors, options: [{ id: 3, priceCents: 800, prices: {}, active: true }, { id: 4, priceCents: 100, prices: {}, active: false }] };
+    expect(menuFromPrice([{ id: 10, priceCents: 0, active: true }], [extra])).toBe(800);
+    expect(menuFromPrice([{ id: 10, priceCents: 500, active: false }], [])).toBeNull();
+  });
+  it('reconhece o grupo que carrega o preço do produto', () => {
+    expect(pricedByGroup(flavors)).toBe(true);
+    expect(pricedByGroup({ ...flavors, pricingMode: 'ADDITIVE' })).toBe(false);
+    expect(pricedByGroup({ ...flavors, minSelect: 0 })).toBe(false);
+    expect(pricedByGroup({ ...flavors, options: [{ id: 1, priceCents: 0, prices: {}, active: true }] })).toBe(false);
+    expect(groupHasPrices({ ...flavors, pricingMode: 'ADDITIVE' })).toBe(true);
+  });
+  it('lista de produtos: "a partir de" quando as opções obrigatórias somam', () => {
+    expect(productPriceLabel(sizes, [flavors], fmt)).toBe('a partir de R3500');
+    expect(productPriceLabel([{ id: 1, priceCents: 4500, active: true }], [], fmt)).toBe('R4500');
+    expect(productPriceLabel([{ id: 1, priceCents: 1000, active: true }, { id: 2, priceCents: 2000, active: true }], [], fmt)).toBe('R1000 – R2000');
   });
 });
 

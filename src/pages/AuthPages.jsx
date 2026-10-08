@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Auth } from '../api/index.js';
 import { errorMessage } from '../api/client.js';
+import TemplatePicker from '../components/TemplatePicker.jsx';
 import { Button, Field, Input, Logo, Select } from '../components/ui.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useResource from '../hooks/useResource.js';
@@ -62,7 +63,8 @@ export function RegisterPage() {
   const { store, register } = useAuth();
   const nav = useNavigate();
   const { data: cities } = useResource(() => Auth.cities(), []);
-  const [f, setF] = useState({ name: '', email: '', password: '', phone: '', cityId: '' });
+  const { data: templates } = useResource(() => Auth.templates(), []); // se falhar, o seletor some e a loja nasce vazia
+  const [f, setF] = useState({ name: '', email: '', password: '', phone: '', cityId: '', template: 'empty' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   if (store) return <Navigate to="/pedidos" replace />;
@@ -72,8 +74,9 @@ export function RegisterPage() {
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      await register({ ...f, name: f.name.trim(), email: f.email.trim(), cityId: Number(f.cityId) });
-      nav('/configuracoes', { replace: true });
+      const template = await register({ ...f, name: f.name.trim(), email: f.email.trim(), cityId: Number(f.cityId) });
+      // com modelo de cardápio, vai direto ver (e revisar) o cardápio; loja vazia segue para as configurações
+      nav(template ? '/cardapio' : '/configuracoes', { replace: true });
     } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
   }
   return (
@@ -91,6 +94,12 @@ export function RegisterPage() {
         </div>
         <Field label="E-mail">{(id) => <Input id={id} type="email" autoComplete="username" required value={f.email} onChange={set('email')} />}</Field>
         <Field label="Senha" hint="Mínimo de 6 caracteres.">{(id) => <Input id={id} type="password" autoComplete="new-password" required minLength={6} value={f.password} onChange={set('password')} />}</Field>
+        {templates?.length > 1 && (
+          <div>
+            <TemplatePicker templates={templates} value={f.template} onChange={(template) => setF((x) => ({ ...x, template }))} />
+            {f.template !== 'empty' && <p className="mt-2 text-xs text-ink-soft">Você pode editar tudo depois. Os preços do modelo são apenas exemplos: revise antes de abrir a loja.</p>}
+          </div>
+        )}
         {error && <p role="alert" className="rounded-xl bg-cherry/10 px-3 py-2 text-sm font-medium text-cherry">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={busy}>Criar loja</Button>
       </form>

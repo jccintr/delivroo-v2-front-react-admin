@@ -3,7 +3,7 @@ import { Products } from '../../api/index.js';
 import Icon from '../../components/Icon.jsx';
 import { Badge, Button, Card, EmptyState, IconButton, Input, Switch } from '../../components/ui.jsx';
 import { useUI } from '../../context/UIContext.jsx';
-import { priceRange } from '../../lib/groups.js';
+import { productPriceLabel } from '../../lib/groups.js';
 import { formatBRL } from '../../lib/money.js';
 import ProductEditor from './ProductEditor.jsx';
 
@@ -55,7 +55,7 @@ export default function ProductsTab({ categories, products, groups, reload, goto
                         {p.imageUrl ? <img src={p.imageUrl} alt="" className="size-14 shrink-0 rounded-xl object-cover" /> : <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-orange-light text-orange"><Icon name="image" /></span>}
                         <span className="min-w-0">
                           <span className={`block truncate font-semibold ${p.active ? '' : 'text-ink-soft line-through'}`}>{p.name}</span>
-                          <span className="block text-sm text-ink-soft">{priceRange(p.variants, formatBRL)}{p.variants.length > 1 ? ` · ${p.variants.length} tamanhos` : ''}</span>
+                          <span className="block text-sm text-ink-soft">{productPriceLabel(p.variants, groups.filter((g) => p.optionGroupIds.includes(g.id)), formatBRL)}{p.variants.length > 1 ? ` · ${p.variants.length} tamanhos` : ''}</span>
                           {p.optionGroupIds.length > 0 && <span className="mt-0.5 block text-xs text-ink-soft">{p.optionGroupIds.length} grupo(s) de opções</span>}
                         </span>
                       </button>

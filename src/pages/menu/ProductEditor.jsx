@@ -3,7 +3,8 @@ import { Products } from '../../api/index.js';
 import Icon from '../../components/Icon.jsx';
 import { Badge, Button, Field, IconButton, ImageUpload, Input, Modal, MoneyInput, Select, Switch, Textarea, cx } from '../../components/ui.jsx';
 import { useUI } from '../../context/UIContext.jsx';
-import { describeGroup } from '../../lib/groups.js';
+import { describeGroup, groupHasPrices, hasMenuRange, menuFromPrice, pricedByGroup } from '../../lib/groups.js';
+import { formatBRL } from '../../lib/money.js';
 
 let seq = 0;
 const blankVariant = (name = '') => ({ key: `n${++seq}`, name, priceCents: null, description: '', active: true });
@@ -26,6 +27,14 @@ export default function ProductEditor({ product, categories, groups, onClose, re
   const setVar = (key, patch) => setVariants((vs) => vs.map((v) => (v.key === key ? { ...v, ...patch } : v)));
   const toggleGroup = (id) => setGroupIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   const simple = variants.length === 1;
+
+  // grupos escolhidos para este produto e o que isso muda no preço que o cliente vê
+  const linked = groups.filter((g) => groupIds.includes(g.id));
+  const carriers = linked.filter(pricedByGroup); // ex.: sabores da pizza, que já carregam o preço
+  const optionsPriced = linked.some(groupHasPrices);
+  const hasBasePrice = variants.some((v) => (v.priceCents ?? 0) > 0);
+  const menuPrice = menuFromPrice(variants, linked);
+  const showPreview = menuPrice != null && (linked.length > 0 || variants.filter((v) => v.active).length > 1);
 
   function validate() {
     if (!f.name.trim()) return 'Informe o nome do produto.';
@@ -106,7 +115,7 @@ export default function ProductEditor({ product, categories, groups, onClose, re
               <div key={v.key} className="rounded-2xl border border-line bg-white p-3" data-testid="variant-row">
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
                   <Field label={simple ? 'Nome interno' : `Tamanho ${i + 1}`}>{(id) => <Input id={id} value={v.name} maxLength={60} onChange={(e) => setVar(v.key, { name: e.target.value })} placeholder="Ex.: Grande" aria-label={`Nome do tamanho ${i + 1}`} />}</Field>
-                  <Field label="Preço">{(id) => <MoneyInput id={id} value={v.priceCents} onChange={(c) => setVar(v.key, { priceCents: c })} aria-label={`Preço do tamanho ${i + 1}`} />}</Field>
+                  <Field label={optionsPriced ? 'Preço base' : 'Preço'}>{(id) => <MoneyInput id={id} value={v.priceCents} onChange={(c) => setVar(v.key, { priceCents: c })} aria-label={`Preço do tamanho ${i + 1}`} />}</Field>
                 </div>
                 {!simple && (
                   <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -118,6 +127,21 @@ export default function ProductEditor({ product, categories, groups, onClose, re
               </div>
             ))}
           </div>
+          {optionsPriced && <p className="mt-2 text-sm text-ink-soft">O cliente paga o preço base mais o preço das opções escolhidas.</p>}
+          {carriers.length > 0 && hasBasePrice && (
+            <div role="status" className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-orange-light px-3 py-2.5 text-sm text-orange-deep">
+              <p className="min-w-0 flex-1">
+                O preço deste produto já vem das opções de {carriers.map((g) => `“${g.name}”`).join(', ')} (cobra a mais cara). O valor informado acima é somado a elas. Para pizza, deixe R$ 0,00.
+              </p>
+              <Button kind="secondary" size="sm" onClick={() => setVariants((vs) => vs.map((v) => ({ ...v, priceCents: 0 })))}>Zerar preço base</Button>
+            </div>
+          )}
+          {showPreview && (
+            <p className="mt-3 rounded-xl bg-cream-2 px-3 py-2 text-sm" data-testid="menu-price-preview">
+              <span className="text-ink-soft">No cardápio, o cliente verá: </span>
+              <strong>{hasMenuRange(variants, linked) ? 'a partir de ' : ''}{formatBRL(menuPrice)}</strong>
+            </p>
+          )}
         </section>
 
         <section>

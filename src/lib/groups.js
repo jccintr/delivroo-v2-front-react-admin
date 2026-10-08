@@ -29,6 +29,63 @@ export function cleanPrices(prices) {
   return Object.fromEntries(Object.entries(prices ?? {}).filter(([, v]) => Number.isInteger(v) && v >= 0));
 }
 
+/** preço de uma opção num tamanho: o preço por tamanho, senão o preço padrão (igual ao cardápio público) */
+export const optionPriceFor = (option, variantId) => option.prices?.[variantId] ?? option.priceCents ?? 0;
+
+const isPriced = (o) => o.active !== false && (o.priceCents > 0 || Object.values(o.prices ?? {}).some((c) => c > 0));
+
+/**
+ * Grupo que "carrega" o preço do produto: obrigatório, cobra só a opção mais cara e tem opções com preço
+ * (ex.: sabores da pizza). Nesse caso o preço do tamanho deve ficar em R$ 0,00.
+ */
+export const pricedByGroup = (g) => g.pricingMode === 'HIGHEST' && g.minSelect > 0 && g.options.some(isPriced);
+
+/** true quando alguma opção do grupo tem preço (o preço do tamanho é só a "base") */
+export const groupHasPrices = (g) => g.options.some(isPriced);
+
+/**
+ * Menor preço que o cliente vê no cardápio ("a partir de"), com a mesma conta do cardápio público:
+ * considera só tamanhos e opções ativos e só o que é obrigatório. null se não há tamanho ativo.
+ */
+export function menuFromPrice(variants, groups) {
+  let best = Infinity;
+  for (const v of variants.filter((x) => x.active !== false)) {
+    let total = v.priceCents ?? 0;
+    for (const g of groups) {
+      const options = g.options.filter((o) => o.active !== false);
+      if (g.minSelect < 1 || !options.length) continue;
+      const prices = options.map((o) => optionPriceFor(o, v.id)).sort((a, b) => a - b);
+      if (g.pricingMode === 'HIGHEST') {
+        total += prices[0];
+      } else {
+        let need = g.minSelect;
+        for (const p of prices) {
+          const take = Math.min(g.maxPerOption, need);
+          total += p * take;
+          need -= take;
+          if (need <= 0) break;
+        }
+      }
+    }
+    best = Math.min(best, total);
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+/** true quando o cliente vê "a partir de" (mais de um tamanho ativo ou grupo obrigatório com opções) */
+export const hasMenuRange = (variants, groups) =>
+  variants.filter((v) => v.active !== false).length > 1 || groups.some((g) => g.minSelect >= 1 && g.options.some((o) => o.active !== false));
+
+/** preço de um produto na lista do admin: considera as opções obrigatórias (pizza não aparece como R$ 0,00) */
+export function productPriceLabel(variants, groups, fmt) {
+  const from = menuFromPrice(variants, groups);
+  const act = variants.filter((v) => v.active);
+  const list = act.length ? act : variants;
+  const baseMin = list.length ? Math.min(...list.map((v) => v.priceCents)) : 0;
+  if (from != null && from > baseMin) return `a partir de ${fmt(from)}`;
+  return priceRange(variants, fmt);
+}
+
 /** faixa de preço de um produto: "R$ 10,00" ou "a partir de R$ 10,00" */
 export function priceRange(variants, fmt) {
   const act = variants.filter((v) => v.active);

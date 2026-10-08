@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useOrders } from '../context/OrdersContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
 import Icon from './Icon.jsx';
+import PriceReviewNotice from './PriceReviewNotice.jsx';
 import { Logo, Spinner, cx } from './ui.jsx';
 
 const NAV = [
@@ -109,6 +110,7 @@ export default function AppShell() {
         </header>
         {offline && <div className="bg-cherry px-4 py-2 text-center text-sm font-semibold text-white">Sem conexão. Tentando reconectar…</div>}
         {!store.isOpen && <div className="bg-butter/30 px-4 py-2 text-center text-sm font-medium text-amber-900">Sua loja está <b>fechada</b>: os clientes veem o cardápio, mas não conseguem pedir.</div>}
+        <PriceReviewNotice />
 
         <main className="mx-auto w-full max-w-[1500px] px-4 pb-28 pt-5 lg:px-8 lg:pb-10 lg:pt-8"><Outlet /></main>
       </div>
