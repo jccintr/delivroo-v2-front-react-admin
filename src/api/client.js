@@ -20,6 +20,10 @@ export const setToken = (t) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : 
 let onUnauthorized = () => {};
 export const setUnauthorizedHandler = (fn) => { onUnauthorized = fn; };
 
+// 402 = assinatura suspensa: o painel recarrega a situação da loja e passa a mostrar só a tela Assinatura
+let onSuspended = () => {};
+export const setSuspendedHandler = (fn) => { onSuspended = fn; };
+
 export async function request(path, { method = 'GET', body, query, signal, form, auth = true } = {}) {
   const qs = query ? `?${new URLSearchParams(Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== ''))}` : '';
   const headers = {};
@@ -37,6 +41,7 @@ export async function request(path, { method = 'GET', body, query, signal, form,
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {
     if (res.status === 401 && auth) onUnauthorized();
+    if (res.status === 402 && data?.code === 'SUBSCRIPTION_SUSPENDED') onSuspended();
     throw new ApiError(res.status, data?.error ?? 'Não foi possível concluir a operação.', data ?? {});
   }
   return data;
@@ -53,4 +58,23 @@ export const uploadFile = (path, field, file, method = 'PATCH') => {
 export function errorMessage(err) {
   if (err?.details?.length) return err.details.map((d) => d.message).join(' · ');
   return err?.message ?? 'Algo deu errado.';
+}
+
+/** baixa um arquivo autenticado (ex.: exportação dos dados) e abre o "salvar como" do navegador */
+export async function download(path, filename) {
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+  } catch {
+    throw new ApiError(0, 'Sem conexão com o servidor. Verifique a internet e tente novamente.');
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new ApiError(res.status, data?.error ?? 'Não foi possível baixar o arquivo.', data ?? {});
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

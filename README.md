@@ -31,6 +31,7 @@ Deploy estático: `vercel.json` e `public/_redirects` já cuidam do roteamento S
 - **Resumo** — faturamento, pedidos, ticket médio, não concluídos, faturamento por dia, pedidos por hora, mais vendidos, entrega x retirada, pagamentos e status (hoje, ontem, 7/30 dias, mês).
 - **Cardápio** — produtos (foto, categoria, descrição, vários tamanhos/preços, disponível), categorias (ordem, ativar, renomear), e **grupos de adicionais e obrigatórios**: regra de escolha (obrigatório/opcional, mínimo, máximo, repetição da mesma opção, cobrar soma ou a mais cara), opções com foto, preço, padrão e **preço por tamanho**; vínculo dos grupos aos produtos.
 - **Configurações** — link da loja (copiar/abrir), logo, nome, cores do cardápio, endereço, tempos de espera, PIX, horários de funcionamento (várias faixas por dia), bairros e taxas, formas de pagamento e mensagens de WhatsApp por status.
+- **Assinatura** — situação (teste grátis de 14 dias, em dia, em atraso, suspensa), escolha/troca de plano, fatura em aberto com a **chave Pix do Delivroo** (copiar) e botão **Já paguei**, histórico de faturas e **Baixar meus dados**. Faixa de aviso no topo quando o teste/pagamento está perto de vencer ou em atraso (7 dias de carência). Com a assinatura **suspensa** o painel mostra só *Pedidos* (para concluir os em andamento) e *Assinatura*; o cardápio público fica fora do ar até o pagamento ser confirmado.
 - Botão **Aberta/Fechada** sempre visível (abrir inicia um novo turno).
 
 ## Estrutura

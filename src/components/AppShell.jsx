@@ -5,7 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useOrders } from '../context/OrdersContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
 import Icon from './Icon.jsx';
+import BillingBanner from './BillingBanner.jsx';
 import PriceReviewNotice from './PriceReviewNotice.jsx';
+import { isRestricted } from '../lib/billing.js';
 import { Logo, Spinner, cx } from './ui.jsx';
 
 const NAV = [
@@ -13,7 +15,10 @@ const NAV = [
   { to: '/resumo', label: 'Resumo', icon: 'chart' },
   { to: '/cardapio', label: 'Cardápio', icon: 'book' },
   { to: '/configuracoes', label: 'Ajustes', icon: 'gear' },
+  { to: '/assinatura', label: 'Assinatura', icon: 'card' },
 ];
+// loja suspensa por falta de pagamento: só Pedidos e Assinatura
+const RESTRICTED_NAV = ['/pedidos', '/assinatura'];
 
 /** botão grande Aberta/Fechada: ao abrir começa um novo turno (a tela de pedidos mostra o turno) */
 function OpenSwitch({ compact }) {
@@ -73,6 +78,8 @@ function Badge({ n }) {
 export default function AppShell() {
   const { store, logout } = useAuth();
   const { pending, offline } = useOrders();
+  const restricted = isRestricted(store.access);
+  const nav = restricted ? NAV.filter((n) => RESTRICTED_NAV.includes(n.to)) : NAV;
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
@@ -84,7 +91,7 @@ export default function AppShell() {
           <div className="min-w-0"><p className="truncate text-sm font-bold">{store.name}</p><p className="truncate text-xs text-white/60">/{store.slug}</p></div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <NavLink key={n.to} to={n.to} className={({ isActive }) => cx('flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] font-semibold transition', isActive ? 'bg-orange text-white' : 'text-white/75 hover:bg-white/10')}>
               <Icon name={n.icon} /> {n.label === 'Ajustes' ? 'Configurações' : n.label}
               {n.badge && <Badge n={pending} />}
@@ -93,7 +100,7 @@ export default function AppShell() {
         </nav>
         <div className="space-y-2 p-4">
           <LiveStatus className="px-1 text-white/60" />
-          <div className="flex gap-2"><OpenSwitch /><SoundButton /></div>
+          <div className="flex gap-2">{!restricted && <OpenSwitch />}<SoundButton /></div>
           <button onClick={logout} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white/60 hover:bg-white/10 hover:text-white"><Icon name="logout" className="size-4" /> Sair</button>
         </div>
       </aside>
@@ -106,18 +113,19 @@ export default function AppShell() {
             <span className="truncate font-display text-lg font-extrabold">{store.name}</span>
             <LiveStatus className="shrink-0 text-white/70 [&>span:last-child]:hidden sm:[&>span:last-child]:inline" />
           </div>
-          <div className="flex shrink-0 items-center gap-2"><SoundButton /><OpenSwitch compact /></div>
+          <div className="flex shrink-0 items-center gap-2"><SoundButton />{!restricted && <OpenSwitch compact />}</div>
         </header>
         {offline && <div className="bg-cherry px-4 py-2 text-center text-sm font-semibold text-white">Sem conexão. Tentando reconectar…</div>}
-        {!store.isOpen && <div className="bg-butter/30 px-4 py-2 text-center text-sm font-medium text-amber-900">Sua loja está <b>fechada</b>: os clientes veem o cardápio, mas não conseguem pedir.</div>}
+        <BillingBanner />
+        {!store.isOpen && !restricted && <div className="bg-butter/30 px-4 py-2 text-center text-sm font-medium text-amber-900">Sua loja está <b>fechada</b>: os clientes veem o cardápio, mas não conseguem pedir.</div>}
         <PriceReviewNotice />
 
         <main className="mx-auto w-full max-w-[1500px] px-4 pb-28 pt-5 lg:px-8 lg:pb-10 lg:pt-8"><Outlet /></main>
       </div>
 
       {/* navegação inferior (celular) */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {NAV.map((n) => (
+      <nav style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }} className="fixed inset-x-0 bottom-0 z-40 grid border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {nav.map((n) => (
           <NavLink key={n.to} to={n.to} className={({ isActive }) => cx('relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold', isActive ? 'text-orange' : 'text-ink-soft')}>
             <span className="relative"><Icon name={n.icon} className="size-6" />{n.badge && pending > 0 && <span className="absolute -right-2.5 -top-1.5 flex min-w-4 items-center justify-center rounded-full bg-orange px-1 text-[10px] font-extrabold text-white">{pending}</span>}</span>
             {n.label}

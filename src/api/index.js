@@ -1,4 +1,4 @@
-import { request, uploadFile, apiUrl } from './client.js';
+import { request, uploadFile, apiUrl, download } from './client.js';
 
 /** URL do fluxo SSE da loja (token curto na query; EventSource não envia headers) */
 export const storeEventsUrl = async () => `${apiUrl('/api/stores/events')}?token=${encodeURIComponent((await Store.eventsToken()).token)}`;
@@ -73,4 +73,11 @@ export const Orders = {
 
 export const Reports = {
   summary: (from, to) => request('/api/stores/reports/summary', { query: { from: from.toISOString(), to: to.toISOString() } }),
+};
+
+export const Subscription = {
+  get: () => request('/api/stores/subscription'),
+  choosePlan: (planId) => put('/api/stores/subscription/plan', { planId }),
+  reportPayment: (invoiceId, note) => post(`/api/stores/subscription/invoices/${invoiceId}/report-payment`, note ? { note } : {}),
+  exportData: (slug) => download('/api/stores/me/export', `delivroo-${slug}.json`),
 };
