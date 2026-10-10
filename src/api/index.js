@@ -14,6 +14,12 @@ export const Auth = {
   templates: () => request('/api/stores/templates', { auth: false }),
 };
 
+/** estados e municípios (vêm do IBGE, via nossa API) */
+export const Locations = {
+  states: () => request('/api/locations/states', { auth: false }),
+  cities: (uf) => request(`/api/locations/states/${uf}/cities`, { auth: false }),
+};
+
 export const Store = {
   eventsToken: () => request('/api/stores/events-token', { method: 'POST' }),
   me: () => request('/api/stores/me'),

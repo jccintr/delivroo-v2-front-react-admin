@@ -109,3 +109,18 @@ describe('períodos do resumo', () => {
     expect(toInputDate(periodRange('month', now).from)).toBe('2026-10-01');
   });
 });
+import { filterCities } from '../src/lib/cities.js';
+describe('filterCities', () => {
+  const list = [{ ibgeId: 1, name: 'São Paulo' }, { ibgeId: 2, name: 'Santa Rita do Sapucaí' }, { ibgeId: 3, name: 'Pouso Alegre' }, { ibgeId: 4, name: 'Paulínia' }];
+  it('ignora acentos e maiúsculas', () => {
+    expect(filterCities(list, 'sao p').map((c) => c.ibgeId)).toEqual([1]);
+    expect(filterCities(list, 'PAULINIA').map((c) => c.ibgeId)).toEqual([4]);
+  });
+  it('quem começa com o texto vem antes de quem só contém', () => {
+    expect(filterCities(list, 'pa').map((c) => c.ibgeId)).toEqual([4, 1]);
+  });
+  it('sem texto devolve o começo da lista, respeitando o limite', () => {
+    expect(filterCities(list, '', 2)).toHaveLength(2);
+    expect(filterCities(list, 'xyz')).toEqual([]);
+  });
+});

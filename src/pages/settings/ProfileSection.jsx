@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Auth, Store } from '../../api/index.js';
+import CityPicker from '../../components/CityPicker.jsx';
 import Icon from '../../components/Icon.jsx';
-import { Button, Card, Field, ImageUpload, Input, Select } from '../../components/ui.jsx';
+import { Button, Card, Field, ImageUpload, Input } from '../../components/ui.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
 import useResource from '../../hooks/useResource.js';
@@ -15,12 +16,14 @@ export default function ProfileSection() {
   const { data: cities } = useResource(() => Auth.cities(), []);
   const a = store.address ?? {};
   const [f, setF] = useState({
-    name: store.name, phone: maskPhone(store.phone), cityId: String(store.cityId),
-    street: a.street ?? '', number: a.number ?? '', complement: a.complement ?? '', district: a.district ?? '', zipCode: a.zipCode ?? '',
+    name: store.name, phone: maskPhone(store.phone),     street: a.street ?? '', number: a.number ?? '', complement: a.complement ?? '', district: a.district ?? '', zipCode: a.zipCode ?? '',
     bgColor: store.bgColor ?? '#FF5A1F', textColor: store.textColor ?? '#FFFFFF',
     pixKey: store.pixKey ?? '', pixBeneficiary: store.pixBeneficiary ?? '',
     waitMin: store.waitMinMinutes ?? '', waitMax: store.waitMaxMinutes ?? '',
   });
+  const current = (cities ?? []).find((c) => c.id === store.cityId);
+  const [changingCity, setChangingCity] = useState(false);
+  const [newCity, setNewCity] = useState(null);
   const [saving, setSaving] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: k === 'phone' ? maskPhone(e.target.value) : e.target.value }));
   const link = `${CLIENT_URL}/${store.slug}`;
@@ -30,15 +33,16 @@ export default function ProfileSection() {
     const n = (v) => (v === '' ? null : Number(v));
     const t = (v) => (v.trim() === '' ? null : v.trim());
     if (n(f.waitMin) != null && n(f.waitMax) != null && n(f.waitMin) > n(f.waitMax)) { error('O tempo mínimo não pode ser maior que o máximo.'); return; }
+    if (changingCity && !newCity) { error('Selecione a nova cidade na lista (ou cancele a troca).'); return; }
     setSaving(true);
     try {
       const next = await Store.update({
-        name: f.name.trim(), phone: f.phone, cityId: Number(f.cityId),
+        name: f.name.trim(), phone: f.phone, ...(changingCity && newCity ? { ibgeCityId: newCity.ibgeId } : {}),
         street: t(f.street), number: t(f.number), complement: t(f.complement), district: t(f.district), zipCode: t(f.zipCode),
         bgColor: f.bgColor, textColor: f.textColor, pixKey: t(f.pixKey), pixBeneficiary: t(f.pixBeneficiary),
         waitMinMinutes: n(f.waitMin), waitMaxMinutes: n(f.waitMax),
       });
-      setStore(next); success('Dados da loja salvos.');
+      setStore(next); setChangingCity(false); setNewCity(null); success('Dados da loja salvos.');
     } catch (err) { error(err.details?.length ? err.details.map((d) => d.message).join(' · ') : err.message); } finally { setSaving(false); }
   }
 
@@ -65,10 +69,20 @@ export default function ProfileSection() {
           onUpload={async (file) => { const r = await Store.uploadLogo(file); setStore((s) => ({ ...s, logoUrl: r.logoUrl })); }}
           onRemove={async () => { await Store.removeLogo(); setStore((s) => ({ ...s, logoUrl: null })); }} />
         <Field label="Nome da loja">{(id) => <Input id={id} required minLength={3} maxLength={120} value={f.name} onChange={set('name')} />}</Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="WhatsApp / telefone">{(id) => <Input id={id} required inputMode="tel" value={f.phone} onChange={set('phone')} />}</Field>
-          <Field label="Cidade">{(id) => <Select id={id} value={f.cityId} onChange={set('cityId')}>{(cities ?? [{ id: store.cityId, name: '…', state: '' }]).map((c) => <option key={c.id} value={c.id}>{c.name}{c.state ? ` - ${c.state}` : ''}</option>)}</Select>}</Field>
-        </div>
+        <Field label="WhatsApp / telefone">{(id) => <Input id={id} required inputMode="tel" value={f.phone} onChange={set('phone')} />}</Field>
+        {changingCity ? (
+          <div className="space-y-2">
+            <CityPicker value={newCity} onChange={setNewCity} />
+            <button type="button" onClick={() => { setChangingCity(false); setNewCity(null); }} className="text-sm font-semibold text-orange hover:underline">Cancelar troca de cidade</button>
+          </div>
+        ) : (
+          <Field label="Cidade">{() => (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-line bg-cream-2 px-3 py-2.5 text-sm">
+              <span data-testid="current-city">{current ? `${current.name} - ${current.state}` : '…'}</span>
+              <button type="button" onClick={() => setChangingCity(true)} className="font-bold text-orange hover:underline">Alterar</button>
+            </div>
+          )}</Field>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Cor principal do cardápio">{(id) => <div className="flex gap-2"><input id={id} type="color" value={f.bgColor} onChange={set('bgColor')} className="h-11 w-14 cursor-pointer rounded-lg border border-line bg-white p-1" /><Input value={f.bgColor} onChange={set('bgColor')} maxLength={7} aria-label="Cor principal (hex)" /></div>}</Field>
           <Field label="Cor do texto sobre ela">{(id) => <div className="flex gap-2"><input id={id} type="color" value={f.textColor} onChange={set('textColor')} className="h-11 w-14 cursor-pointer rounded-lg border border-line bg-white p-1" /><Input value={f.textColor} onChange={set('textColor')} maxLength={7} aria-label="Cor do texto (hex)" /></div>}</Field>

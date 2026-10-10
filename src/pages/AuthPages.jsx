@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Auth } from '../api/index.js';
 import { errorMessage } from '../api/client.js';
+import CityPicker from '../components/CityPicker.jsx';
 import TemplatePicker from '../components/TemplatePicker.jsx';
-import { Button, Field, Input, Logo, Select } from '../components/ui.jsx';
+import { Button, Field, Input, Logo } from '../components/ui.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useResource from '../hooks/useResource.js';
 import { maskPhone } from '../lib/phone.js';
@@ -62,9 +63,8 @@ export function LoginPage() {
 export function RegisterPage() {
   const { store, register } = useAuth();
   const nav = useNavigate();
-  const { data: cities } = useResource(() => Auth.cities(), []);
   const { data: templates } = useResource(() => Auth.templates(), []); // se falhar, o seletor some e a loja nasce vazia
-  const [f, setF] = useState({ name: '', email: '', password: '', phone: '', cityId: '', template: 'empty' });
+  const [f, setF] = useState({ name: '', email: '', password: '', phone: '', city: null, template: 'empty' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   if (store) return <Navigate to="/pedidos" replace />;
@@ -72,9 +72,11 @@ export function RegisterPage() {
 
   async function submit(e) {
     e.preventDefault();
+    if (!f.city) { setError('Escolha o estado e selecione a cidade na lista.'); return; }
     setBusy(true); setError('');
     try {
-      const template = await register({ ...f, name: f.name.trim(), email: f.email.trim(), cityId: Number(f.cityId) });
+      const { city, ...rest } = f;
+      const template = await register({ ...rest, name: f.name.trim(), email: f.email.trim(), ibgeCityId: city.ibgeId });
       // com modelo de cardápio, vai direto ver (e revisar) o cardápio; loja vazia segue para as configurações
       nav(template ? '/cardapio' : '/configuracoes', { replace: true });
     } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
@@ -82,16 +84,9 @@ export function RegisterPage() {
   return (
     <Frame title="Criar minha loja" subtitle="Leva menos de um minuto. Depois você monta o cardápio." footer={<>Já tem conta? <Link to="/login" className="font-bold text-orange hover:underline">Entrar</Link></>}>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Nome da loja">{(id) => <Input id={id} required minLength={3} value={f.name} onChange={set('name')} placeholder="Ex.: Brothers Burger" />}</Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="WhatsApp / telefone">{(id) => <Input id={id} required inputMode="tel" value={f.phone} onChange={set('phone')} placeholder="(00) 00000-0000" />}</Field>
-          <Field label="Cidade">{(id) => (
-            <Select id={id} required value={f.cityId} onChange={set('cityId')}>
-              <option value="">Selecione…</option>
-              {(cities ?? []).map((c) => <option key={c.id} value={c.id}>{c.name} - {c.state}</option>)}
-            </Select>
-          )}</Field>
-        </div>
+        <Field label="Nome da loja">{(id) => <Input id={id} required minLength={3} value={f.name} onChange={set('name')} placeholder="Ex.: Top Burguer" />}</Field>
+        <Field label="WhatsApp / telefone">{(id) => <Input id={id} required inputMode="tel" value={f.phone} onChange={set('phone')} placeholder="(00) 00000-0000" />}</Field>
+        <CityPicker value={f.city} onChange={(city) => setF((x) => ({ ...x, city }))} />
         <Field label="E-mail">{(id) => <Input id={id} type="email" autoComplete="username" required value={f.email} onChange={set('email')} />}</Field>
         <Field label="Senha" hint="Mínimo de 6 caracteres.">{(id) => <Input id={id} type="password" autoComplete="new-password" required minLength={6} value={f.password} onChange={set('password')} />}</Field>
         {templates?.length > 1 && (
