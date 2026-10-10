@@ -40,11 +40,24 @@ button:disabled { cursor: not-allowed; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-/* impressão do pedido (cozinha): só a área .print-ticket aparece */
+/* impressão do pedido (cozinha/entrega) em bobina de 58 mm: só a área .print-ticket aparece.
+   A área útil de impressão de uma bobina 58 mm costuma ser ~48 mm; o cupom fica centralizado nela. */
 .print-ticket { display: none; }
 @media print {
+  @page { size: 58mm auto; margin: 0; }
   body * { visibility: hidden; }
   .print-ticket, .print-ticket * { visibility: visible; }
-  .print-ticket { display: block; position: absolute; inset: 0 auto auto 0; width: 80mm; padding: 4mm; font: 12px/1.35 ui-monospace, monospace; color: #000; background: #fff; }
-  @page { margin: 0; }
+  .print-ticket { display: block; position: absolute; top: 0; left: 0; right: 0; margin: 0 auto; box-sizing: border-box; width: 48mm; padding: 1mm 1.5mm; font: 11px/1.35 ui-monospace, 'Courier New', monospace; color: #000; background: #fff; overflow-wrap: anywhere; }
+  .print-ticket .tk-store { text-align: center; font-size: 14px; font-weight: 700; }
+  .print-ticket .tk-center { text-align: center; }
+  .print-ticket .tk-banner { margin: 3px 0; text-align: center; font-size: 13px; font-weight: 700; }
+  .print-ticket .tk-title { margin-top: 5px; text-align: center; font-weight: 700; }
+  .print-ticket .tk-sep { margin: 3px 0; border-top: 1px dotted #000; }
+  .print-ticket .tk-row { display: flex; justify-content: space-between; gap: 4px; }
+  .print-ticket .tk-row > span:last-child { white-space: nowrap; }
+  .print-ticket .tk-item { margin-bottom: 4px; break-inside: avoid; }
+  .print-ticket .tk-opt { padding-left: 6px; font-size: 10px; }
+  .print-ticket .tk-note { margin-top: 2px; padding-left: 6px; font-weight: 700; }
+  .print-ticket .tk-total { margin-top: 2px; font-size: 13px; font-weight: 700; }
+  .print-ticket .tk-thanks { margin-top: 5px; text-align: center; }
 }

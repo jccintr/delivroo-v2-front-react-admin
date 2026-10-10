@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { Orders } from '../api/index.js';
 import { useOrders } from '../context/OrdersContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
@@ -6,6 +7,7 @@ import { dateTimeOf, timeAgo, timeOf } from '../lib/dates.js';
 import { formatBRL } from '../lib/money.js';
 import { STATUS_LABEL, STATUS_TONE, actionsFor } from '../lib/orderStatus.js';
 import { whatsappLink } from '../lib/phone.js';
+import { changeDueCents, fulfillmentBanner, itemTitle, optionLine } from '../lib/ticket.js';
 import { maskPhone } from '../lib/phone.js';
 import Icon from './Icon.jsx';
 import { Badge, Button, Modal, cx } from './ui.jsx';
@@ -157,31 +159,61 @@ export function OrderDetail({ order, onClose, actions }) {
 
 /** cupom 80 mm (só aparece ao imprimir) */
 function Ticket({ order }) {
+  const { store } = useAuth();
   const delivery = order.fulfillment === 'DELIVERY';
+  const change = changeDueCents(order);
+  const Sep = () => <div className="tk-sep" />;
+  const Section = ({ title, children }) => (
+    <>
+      <div className="tk-title">{title}</div>
+      {children}
+    </>
+  );
   return createPortal(
     <div className="print-ticket">
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 16 }}>PEDIDO #{order.orderNumber}</div>
-      <div style={{ textAlign: 'center' }}>{dateTimeOf(order.createdAt)} · {delivery ? 'ENTREGA' : 'RETIRADA'}</div>
-      <hr />
-      <div><b>{order.customer.name}</b></div>
-      <div>{maskPhone(order.customer.phone)}</div>
-      {delivery && <div>{order.delivery.address}{order.delivery.district ? ` - ${order.delivery.district}` : ''}</div>}
-      <hr />
-      {order.items.map((i) => (
-        <div key={i.id} style={{ marginBottom: 4 }}>
-          <div><b>{i.quantity}x {i.productName}{i.variantName && i.variantName !== 'Único' ? ` (${i.variantName})` : ''}</b> — {formatBRL(i.lineTotalCents)}</div>
-          {i.options.map((o, k) => <div key={k}>&nbsp;&nbsp;+ {o.quantity > 1 ? `${o.quantity}x ` : ''}{o.optionName}</div>)}
-          {i.notes && <div>&nbsp;&nbsp;Obs: {i.notes}</div>}
-        </div>
-      ))}
-      {order.notes && <div>Obs. pedido: {order.notes}</div>}
-      <hr />
-      <div>Subtotal: {formatBRL(order.subtotalCents)}</div>
-      {delivery && <div>Entrega: {formatBRL(order.deliveryFeeCents)}</div>}
-      {order.discountCents > 0 && <div>Desconto: -{formatBRL(order.discountCents)}</div>}
-      <div style={{ fontSize: 15 }}><b>TOTAL: {formatBRL(order.totalCents)}</b></div>
-      <div>Pagamento: {order.payment.name}</div>
-      {order.payment.cashChangeForCents > 0 && <div>Troco para {formatBRL(order.payment.cashChangeForCents)}</div>}
+      <div className="tk-store">{store?.name}</div>
+      <div className="tk-center">Pedido: <b>#{order.orderNumber}</b></div>
+      <div className="tk-center">{new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+      <div className="tk-banner">*** {fulfillmentBanner(order)} ***</div>
+
+      <Section title="CLIENTE">
+        <div className="tk-center">{order.customer.name}</div>
+        {order.customer.phone && <div className="tk-center">{maskPhone(order.customer.phone)}</div>}
+      </Section>
+
+      <Section title="FORMA DE PAGAMENTO">
+        <div className="tk-center">{order.payment.name}</div>
+        {order.payment.cashChangeForCents > 0 && (
+          <div className="tk-center">Troco para {formatBRL(order.payment.cashChangeForCents)}{change > 0 && <b> (troco {formatBRL(change)})</b>}</div>
+        )}
+      </Section>
+
+      {delivery && (
+        <Section title="ENDEREÇO DE ENTREGA">
+          <div className="tk-center">{order.delivery.address}</div>
+          {order.delivery.district && <div className="tk-center">{order.delivery.district}</div>}
+        </Section>
+      )}
+
+      <Section title="ITENS DO PEDIDO">
+        <Sep />
+        {order.items.map((i) => (
+          <div key={i.id} className="tk-item">
+            <div className="tk-row"><b>{itemTitle(i)}</b><span>{formatBRL(i.lineTotalCents)}</span></div>
+            {i.options.map((o, k) => <div key={k} className="tk-opt">{optionLine(o)}</div>)}
+            {i.legacyDescription && <div className="tk-opt">{i.legacyDescription}</div>}
+            {i.notes && <div className="tk-note">Obs.: {i.notes}</div>}
+          </div>
+        ))}
+        {order.notes && <div className="tk-note">Obs. do pedido: {order.notes}</div>}
+        <Sep />
+      </Section>
+
+      <div className="tk-row"><span>Total dos produtos:</span><span>{formatBRL(order.subtotalCents)}</span></div>
+      {delivery && <div className="tk-row"><span>Taxa de entrega:</span><span>{formatBRL(order.deliveryFeeCents)}</span></div>}
+      {order.discountCents > 0 && <div className="tk-row"><span>Desconto:</span><span>− {formatBRL(order.discountCents)}</span></div>}
+      <div className="tk-row tk-total"><span>Total a pagar:</span><span>{formatBRL(order.totalCents)}</span></div>
+      <div className="tk-thanks">Obrigado pela preferência!</div>
     </div>,
     document.body,
   );
