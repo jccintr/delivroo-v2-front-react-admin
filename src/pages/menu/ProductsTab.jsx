@@ -11,6 +11,7 @@ export default function ProductsTab({ categories, products, groups, reload, goto
   const { error, success, confirm } = useUI();
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState(null); // 'new' | productId
+  const [duplicating, setDuplicating] = useState(null); // id do produto sendo duplicado (evita clique duplo = dois clones)
   const catsSorted = useMemo(() => [...categories].sort((a, b) => a.position - b.position || a.id - b.id), [categories]);
   const norm = (s) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const visible = products.filter((p) => !q || norm(p.name).includes(norm(q)));
@@ -18,6 +19,16 @@ export default function ProductsTab({ categories, products, groups, reload, goto
 
   async function toggle(p, active) {
     try { await Products.update(p.id, { active }); await reload(); } catch (e) { error(e.message); }
+  }
+  // clone sem imagem e indisponível; já abre a edição dele para o lojista trocar nome, preço e foto
+  async function duplicate(p) {
+    setDuplicating(p.id);
+    try {
+      const copy = await Products.duplicate(p.id);
+      await reload();
+      success('Produto duplicado. Ele está indisponível: ajuste e ative quando estiver pronto.');
+      setEditing(copy.id);
+    } catch (e) { error(e.message); } finally { setDuplicating(null); }
   }
   async function remove(p) {
     if (!(await confirm({ title: `Excluir “${p.name}”?`, message: 'O produto sai do cardápio. Pedidos antigos continuam intactos.', confirmLabel: 'Excluir', danger: true }))) return;
@@ -61,6 +72,7 @@ export default function ProductsTab({ categories, products, groups, reload, goto
                       </button>
                       <Switch checked={p.active} onChange={(v) => toggle(p, v)} label={`${p.name} disponível`} />
                       <IconButton icon="edit" label="Editar" onClick={() => setEditing(p.id)} className="max-sm:!hidden" />
+                      <IconButton icon="copy" label="Duplicar" onClick={() => duplicate(p)} disabled={duplicating !== null} />
                       <IconButton icon="trash" label="Excluir" onClick={() => remove(p)} className="hover:!text-cherry" />
                     </div>
                   ))}

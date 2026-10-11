@@ -54,6 +54,7 @@ export const Products = {
   create: (data) => post('/api/stores/products', data),
   update: (id, data) => patch(`/api/stores/products/${id}`, data),
   remove: (id) => del(`/api/stores/products/${id}`),
+  duplicate: (id) => post(`/api/stores/products/${id}/duplicate`),
   addVariant: (id, data) => post(`/api/stores/products/${id}/variants`, data),
   updateVariant: (id, variantId, data) => patch(`/api/stores/products/${id}/variants/${variantId}`, data),
   removeVariant: (id, variantId) => del(`/api/stores/products/${id}/variants/${variantId}`),
