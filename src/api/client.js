@@ -11,6 +11,7 @@ export class ApiError extends Error {
     this.status = status;
     this.code = extra.code;
     this.details = extra.details;
+    this.retryAfterSeconds = extra.retryAfterSeconds;
   }
 }
 

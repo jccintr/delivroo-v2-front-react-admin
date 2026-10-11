@@ -1,14 +1,41 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Auth, Store } from '../../api/index.js';
+import { errorMessage } from '../../api/client.js';
 import CityPicker from '../../components/CityPicker.jsx';
 import Icon from '../../components/Icon.jsx';
 import { Button, Card, Field, ImageUpload, Input } from '../../components/ui.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
 import useResource from '../../hooks/useResource.js';
+import { sendResetCode, throttleMessage } from '../../lib/passwordReset.js';
 import { maskPhone } from '../../lib/phone.js';
 
-const CLIENT_URL = (import.meta.env.VITE_CLIENT_URL ?? 'https://lojas.delivroo.app.br').replace(/\/$/, '');
+const CLIENT_URL = (import.meta.env.VITE_CLIENT_URL ?? 'https://stores.delivroo.app.br').replace(/\/$/, '');
+
+/** Alterar senha = o mesmo fluxo do "esqueci minha senha": código por e-mail para a própria loja */
+function PasswordCard() {
+  const { store } = useAuth();
+  const { error } = useUI();
+  const nav = useNavigate();
+  const [busy, setBusy] = useState(false);
+
+  async function start() {
+    setBusy(true);
+    try {
+      const r = await sendResetCode(store.email);
+      nav('/recuperar-senha', { state: { email: store.email, codeSent: true, alreadySent: !r.sent, wait: r.sent ? 60 : r.wait } });
+    } catch (err) { error(err.status === 429 ? throttleMessage(err) : errorMessage(err)); } finally { setBusy(false); }
+  }
+
+  return (
+    <Card className="space-y-3 p-4">
+      <h2 className="font-display text-lg font-bold">Senha</h2>
+      <p className="text-sm text-ink-soft">Para alterar a senha, enviamos um código de 6 dígitos para <b className="text-ink">{store.email}</b>. Ao trocar, você entra de novo com a nova senha e as sessões abertas em outros aparelhos são encerradas.</p>
+      <Button kind="secondary" loading={busy} onClick={start}>Enviar código por e-mail</Button>
+    </Card>
+  );
+}
 
 export default function ProfileSection() {
   const { store, setStore } = useAuth();
@@ -116,6 +143,8 @@ export default function ProfileSection() {
           <Field label="Beneficiário do PIX">{(id) => <Input id={id} maxLength={140} value={f.pixBeneficiary} onChange={set('pixBeneficiary')} />}</Field>
         </div>
       </Card>
+
+      <PasswordCard />
 
       <div className="sticky bottom-20 z-10 flex justify-end lg:bottom-4"><Button type="submit" size="lg" loading={saving} className="shadow-lg">Salvar alterações</Button></div>
     </form>

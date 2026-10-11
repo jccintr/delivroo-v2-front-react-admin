@@ -9,6 +9,10 @@ const post = j('POST'); const patch = j('PATCH'); const put = j('PUT'); const de
 export const Auth = {
   login: (email, password) => request('/api/stores/login', { method: 'POST', body: { email, password }, auth: false }),
   register: (data) => request('/api/stores/register', { method: 'POST', body: data, auth: false }),
+  /** envia o código de 6 dígitos para o e-mail da loja (a resposta é a mesma para e-mail cadastrado ou não) */
+  forgotPassword: (email) => request('/api/stores/forgot-password', { method: 'POST', body: { email }, auth: false }),
+  /** confere o código e grava a nova senha (as sessões antigas passam a dar 401) */
+  resetPassword: ({ email, code, newPassword }) => request('/api/stores/reset-password', { method: 'POST', body: { email, code, newPassword }, auth: false }),
   cities: () => request('/api/cities', { auth: false }),
   /** cardápios iniciais do cadastro: "Loja vazia" + modelos prontos */
   templates: () => request('/api/stores/templates', { auth: false }),

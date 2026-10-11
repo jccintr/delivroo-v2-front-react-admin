@@ -3,7 +3,7 @@ import AppShell from './components/AppShell.jsx';
 import { Loading } from './components/ui.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 import { OrdersProvider } from './context/OrdersContext.jsx';
-import { LoginPage, RegisterPage } from './pages/AuthPages.jsx';
+import { ForgotPasswordPage, LoginPage, RegisterPage } from './pages/AuthPages.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import SummaryPage from './pages/SummaryPage.jsx';
 import MenuPage from './pages/menu/MenuPage.jsx';
@@ -28,6 +28,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/cadastro" element={<RegisterPage />} />
+      <Route path="/recuperar-senha" element={<ForgotPasswordPage />} />
       <Route element={<Protected />}>
         <Route path="/pedidos" element={<OrdersPage />} />
         <Route path="/resumo" element={<SummaryPage />} />
