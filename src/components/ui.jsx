@@ -7,24 +7,32 @@ const MAX_IMAGE_MB = Number(import.meta.env.VITE_IMAGE_MAX_MB) || 3;
 
 export const cx = (...c) => c.filter(Boolean).join(' ');
 
-/** marca do Delivroo (mesmo símbolo da landing page) */
-export function LogoMark({ className = 'size-9' }) {
+/**
+ * Marca do Delivroo — idêntica ao logo da landing page (Logo2): círculo laranja-claro com o hambúrguer
+ * "lunch_dining" do Material Design em laranja-escuro. O ícone é um SVG inline (o mesmo de
+ * react-icons/md MdLunchDining) para não adicionar dependência ao painel.
+ */
+const SIZES = { sm: { mark: 26, text: 'text-lg' }, md: { mark: 34, text: 'text-2xl' }, lg: { mark: 44, text: 'text-3xl' } };
+
+export function LogoMark({ size = 'md', className = '' }) {
   return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <circle cx="32" cy="32" r="32" fill="#FFE7D4" />
-      <path d="M18 24C18 20.6863 20.6863 18 24 18H40C43.3137 18 46 20.6863 46 24C46 24.5523 45.5523 25 45 25H19C18.4477 25 18 24.5523 18 24Z" fill="#FF5A1F" />
-      <rect x="17" y="29" width="30" height="5" rx="2.5" fill="#FF5A1F" />
-      <rect x="17" y="37" width="30" height="5" rx="2.5" fill="#FF5A1F" />
-      <rect x="20" y="45" width="24" height="4" rx="2" fill="#E24312" />
-    </svg>
+    <div
+      className={cx('flex shrink-0 items-center justify-center rounded-full bg-orange-light p-1', className)}
+      style={{ width: SIZES[size].mark, height: SIZES[size].mark }}
+    >
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" className="text-orange-deep" aria-hidden="true">
+        <path fillRule="evenodd" d="M22 10c.32-3.28-4.28-6-9.99-6S1.7 6.72 2.02 10zM5.35 13.5c.55 0 .78.14 1.15.36.45.27 1.07.64 2.18.64s1.73-.37 2.18-.64c.37-.23.59-.36 1.15-.36.55 0 .78.14 1.15.36.45.27 1.07.64 2.18.64s1.73-.37 2.18-.64c.37-.23.59-.36 1.15-.36.55 0 .78.14 1.15.36.45.27 1.07.63 2.17.64v-1.98s-.79-.16-1.16-.38c-.45-.27-1.07-.64-2.18-.64s-1.73.37-2.18.64c-.37.23-.6.36-1.15.36s-.78-.14-1.15-.36c-.45-.27-1.07-.64-2.18-.64s-1.73.37-2.18.64c-.37.23-.59.36-1.15.36-.55 0-.78-.14-1.15-.36-.45-.27-1.07-.64-2.18-.64s-1.73.37-2.18.64c-.37.23-.59.36-1.15.36v2c1.11 0 1.73-.37 2.21-.64.37-.23.59-.36 1.14-.36M2 16v2c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-2z" />
+      </svg>
+    </div>
   );
 }
 
-export function Logo({ light = false, className = '' }) {
+/** `light` = para fundo escuro (texto branco), como o `dark` do Logo2 da landing */
+export function Logo({ light = false, size = 'md', className = '' }) {
   return (
-    <span className={cx('inline-flex items-center gap-2', className)}>
-      <LogoMark />
-      <span className={cx('font-display text-2xl font-extrabold leading-none tracking-tight', light ? 'text-white' : 'text-ink')}>Delivroo</span>
+    <span className={cx('inline-flex items-center gap-2.5', className)}>
+      <LogoMark size={size} />
+      <span className={cx('font-display font-extrabold tracking-tight', SIZES[size].text, light ? 'text-white' : 'text-ink')}>Delivroo</span>
     </span>
   );
 }
