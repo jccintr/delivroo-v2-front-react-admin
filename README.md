@@ -30,7 +30,8 @@ Deploy estático: `vercel.json` e `public/_redirects` já cuidam do roteamento S
 - **Pedidos** — quadro com colunas *Novos / Em preparo / Prontos-A caminho / Finalizados* (no celular vira abas). Atualiza **em tempo real (SSE)** — pedido novo aparece na hora, também em outros aparelhos logados — com **aviso sonoro** (botão *Som*), selo no menu e contador no título da aba. Botões seguem o fluxo da API (entrega x retirada); recusar/cancelar pedem motivo. Cada mudança oferece **“Avisar no WhatsApp”** com a mensagem da loja. Detalhe com itens, opções, troco, histórico, **impressão de cupom 80 mm** e histórico por período/status com paginação.
 - **Resumo** — faturamento, pedidos, ticket médio, não concluídos, faturamento por dia, pedidos por hora, mais vendidos, entrega x retirada, pagamentos e status (hoje, ontem, 7/30 dias, mês).
 - **Cardápio** — produtos (foto, categoria, descrição, vários tamanhos/preços, disponível), categorias (ordem, ativar, renomear), e **grupos de adicionais e obrigatórios**: regra de escolha (obrigatório/opcional, mínimo, máximo, repetição da mesma opção, cobrar soma ou a mais cara), opções com foto, preço, padrão e **preço por tamanho**; vínculo dos grupos aos produtos.
-- **Configurações** — link da loja (copiar/abrir), logo, nome, cores do cardápio, endereço, tempos de espera, PIX, horários de funcionamento (várias faixas por dia), bairros e taxas, formas de pagamento e mensagens de WhatsApp por status.
+- **Configurações** — link da loja (copiar/abrir) e **QR Code do cardápio** (veja abaixo), logo, nome, cores do cardápio, endereço, tempos de espera, PIX, horários de funcionamento (várias faixas por dia), bairros e taxas, formas de pagamento e mensagens de WhatsApp por status.
+- **QR Code do cardápio** (Configurações > Loja > *QR Code*) — gerado no próprio navegador (biblioteca `qrcode`), sem chamar a API. Aponta para `link-da-loja?origem=qr` (o impresso não pode ser trocado depois; a origem já vai no link para medir pedidos vindos dele). Baixa em **PNG** (~1000 px) e **SVG** (vetor, para a gráfica); a cor da loja só é usada se tiver contraste suficiente com o branco. A aba *Para imprimir* gera **display de mesa (A6)**, **folha com 12 adesivos redondos (A4)** e **cartaz (A4)** com logo, nome e cores da loja, impressos por um iframe (*Salvar como PDF* no diálogo gera o arquivo). Lógica em `src/lib/qr.js` e `src/lib/printables.js`.
 - **Assinatura** — situação (teste grátis de 14 dias, em dia, em atraso, suspensa), escolha/troca de plano, fatura em aberto com a **chave Pix do Delivroo** (copiar) e botão **Já paguei**, histórico de faturas e **Baixar meus dados**. Faixa de aviso no topo quando o teste/pagamento está perto de vencer ou em atraso (7 dias de carência). Com a assinatura **suspensa** o painel mostra só *Pedidos* (para concluir os em andamento) e *Assinatura*; o cardápio público fica fora do ar até o pagamento ser confirmado.
 - Botão **Aberta/Fechada** sempre visível (abrir inicia um novo turno).
 
@@ -41,7 +42,7 @@ src/api        cliente HTTP (token Bearer, 401 desloga) e wrappers dos endpoints
 src/context    Auth, UI (toasts/confirmação) e Orders (SSE + polling de segurança + som)
 src/components UI kit (Button, Modal/Sheet, Field, MoneyInput, ImageUpload…), AppShell, peças de pedido
 src/pages      Pedidos, Resumo, menu/* (cardápio), settings/*
-src/lib        dinheiro (centavos), telefone, datas, fluxo de status, regras de grupos
+src/lib        dinheiro (centavos), telefone, datas, fluxo de status, regras de grupos, QR Code e materiais impressos
 tests          unitários das regras (vitest)
 ```
 

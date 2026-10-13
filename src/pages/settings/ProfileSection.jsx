@@ -4,6 +4,7 @@ import { Auth, Store } from '../../api/index.js';
 import { errorMessage } from '../../api/client.js';
 import CityPicker from '../../components/CityPicker.jsx';
 import Icon from '../../components/Icon.jsx';
+import QrModal from '../../components/QrModal.jsx';
 import { Button, Card, Field, ImageUpload, Input } from '../../components/ui.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
@@ -52,6 +53,7 @@ export default function ProfileSection() {
   const [changingCity, setChangingCity] = useState(false);
   const [newCity, setNewCity] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: k === 'phone' ? maskPhone(e.target.value) : e.target.value }));
   const link = `${CLIENT_URL}/${store.slug}`;
 
@@ -78,6 +80,7 @@ export default function ProfileSection() {
   }
 
   return (
+    <>
     <form onSubmit={save} className="space-y-4">
       <Card className="p-4">
         <h2 className="font-display text-lg font-bold">Link do seu cardápio</h2>
@@ -85,6 +88,7 @@ export default function ProfileSection() {
         <div className="flex flex-wrap items-center gap-2">
           <code className="min-w-0 flex-1 truncate rounded-xl bg-cream-2 px-3 py-2.5 text-sm" data-testid="store-link">{link}</code>
           <Button kind="secondary" onClick={copy}><Icon name="copy" className="size-4" /> Copiar</Button>
+          <Button kind="secondary" onClick={() => setQrOpen(true)}><Icon name="qr" className="size-4" /> QR Code</Button>
           <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold hover:bg-cream-2"><Icon name="external" className="size-4" /> Abrir</a>
         </div>
       </Card>
@@ -148,5 +152,8 @@ export default function ProfileSection() {
 
       <div className="sticky bottom-20 z-10 flex justify-end lg:bottom-4"><Button type="submit" size="lg" loading={saving} className="shadow-lg">Salvar alterações</Button></div>
     </form>
+    {/* fora do <form>: os botões da janela não podem enviar o formulário */}
+    <QrModal open={qrOpen} onClose={() => setQrOpen(false)} store={store} link={link} />
+    </>
   );
 }
