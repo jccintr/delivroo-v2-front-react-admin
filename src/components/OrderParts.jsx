@@ -6,6 +6,7 @@ import { useUI } from '../context/UIContext.jsx';
 import { dateTimeOf, timeAgo, timeOf } from '../lib/dates.js';
 import { formatBRL } from '../lib/money.js';
 import { STATUS_LABEL, STATUS_TONE, actionsFor } from '../lib/orderStatus.js';
+import { paymentFlag } from '../lib/payment.js';
 import { whatsappLink } from '../lib/phone.js';
 import { changeDueCents, fulfillmentBanner, itemTitle, optionLine } from '../lib/ticket.js';
 import { maskPhone } from '../lib/phone.js';
@@ -48,7 +49,47 @@ export function useOrderActions() {
       return null;
     } finally { setBusyId(null); }
   }
-  return { run, busyId };
+  async function confirmPayment(order) {
+    setBusyId(order.id);
+    try {
+      const r = await Orders.confirmPayment(order.id);
+      replaceOrder(r.order);
+      toast(`Pedido #${order.orderNumber}: recebimento do Pix confirmado.`, { kind: 'success' });
+    } catch (e) {
+      error(e.message);
+    } finally { setBusyId(null); }
+  }
+  return { run, confirmPayment, busyId };
+}
+
+/** Pix: o que a loja precisa fazer (conferir e confirmar o recebimento) */
+function PixStatus({ order, actions }) {
+  const flag = paymentFlag(order);
+  const p = order.payment;
+  if (!flag) return null;
+  const busy = actions.busyId === order.id;
+  const confirmBtn = <Button size="sm" kind={flag === 'review' ? 'primary' : 'secondary'} loading={busy} onClick={() => actions.confirmPayment(order)}>Confirmei o recebimento</Button>;
+  if (flag === 'confirmed') {
+    return <p className="mt-2 rounded-xl bg-mint-light px-3 py-2 text-sm font-semibold text-emerald-800">Pix confirmado em {dateTimeOf(p.confirmedAt)}.</p>;
+  }
+  if (flag === 'review') {
+    return (
+      <div className="mt-2 space-y-2 rounded-xl bg-butter/30 px-3 py-3 text-sm text-amber-900" data-testid="pix-review">
+        <p className="font-bold">O cliente avisou que pagou ({dateTimeOf(p.reportedAt)}). Confira no app do seu banco.</p>
+        {p.reportNote && <p>Observação do cliente: “{p.reportNote}”</p>}
+        <div className="flex flex-wrap items-center gap-3">
+          {p.receiptUrl ? <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-bold underline"><Icon name="external" className="size-4" /> Ver comprovante</a> : <span>Sem comprovante anexado.</span>}
+          {confirmBtn}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cream-2 px-3 py-2 text-sm">
+      <span className="text-ink-soft">Pix ainda não confirmado.</span>
+      {confirmBtn}
+    </div>
+  );
 }
 
 export function OrderCard({ order, onOpen, actions }) {
@@ -72,6 +113,8 @@ export function OrderCard({ order, onOpen, actions }) {
           <FulfillmentBadge order={order} />
           <StatusBadge status={order.status} />
           <span className="text-xs text-ink-soft">{count} {count === 1 ? 'item' : 'itens'} · {order.payment.name}</span>
+          {paymentFlag(order) === 'review' && <Badge className="bg-butter/40 text-amber-900">Pix informado · conferir</Badge>}
+          {paymentFlag(order) === 'confirmed' && <Badge className="bg-mint-light text-emerald-800">Pix confirmado</Badge>}
         </div>
         <ul className="mt-2 space-y-0.5 text-sm text-ink-soft">
           {order.items.slice(0, 3).map((i) => <li key={i.id} className="truncate">{i.quantity}× {i.productName}{i.variantName && i.variantName !== 'Único' ? ` (${i.variantName})` : ''}</li>)}
@@ -138,6 +181,7 @@ export function OrderDetail({ order, onClose, actions }) {
           <div className="mt-2 border-t border-line pt-2">
             <Row label="Pagamento">{order.payment.name}</Row>
             {order.payment.cashChangeForCents > 0 && <Row label="Troco para">{formatBRL(order.payment.cashChangeForCents)} <b className="text-orange-deep">(troco {formatBRL(order.payment.cashChangeForCents - order.totalCents)})</b></Row>}
+            <PixStatus order={order} actions={actions} />
           </div>
         </section>
 

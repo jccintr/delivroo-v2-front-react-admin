@@ -12,6 +12,7 @@ export class ApiError extends Error {
     this.code = extra.code;
     this.details = extra.details;
     this.retryAfterSeconds = extra.retryAfterSeconds;
+    this.candidates = extra.candidates; // chave Pix ambígua (CPF ou telefone?)
   }
 }
 

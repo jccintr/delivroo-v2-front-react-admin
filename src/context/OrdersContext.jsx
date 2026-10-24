@@ -64,11 +64,18 @@ export function OrdersProvider({ children }) {
         if (!known && order.status === 'RECEIVED') announce([order]);
       },
       'order.updated': ({ order }) => { seen.current?.add(order.id); upsert(order); },
+      // cliente tocou em "Já paguei": avisa para a loja conferir o Pix
+      'order.payment_reported': ({ order }) => {
+        seen.current?.add(order.id);
+        upsert(order);
+        if (soundRef.current) playAlert();
+        toast(`Pedido #${order.orderNumber}: o cliente avisou que pagou o Pix. Confira!`, { kind: 'success', ms: 9000 });
+      },
     }, {
       onStatus: setConn,
       onReady: refresh, // conectou ou reconectou: recupera o que passou enquanto estava fora
     });
-  }, [store?.id, upsert, announce, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [store?.id, upsert, announce, refresh, toast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // carga inicial + polling de segurança (mais lento enquanto o SSE está ao vivo)
   useEffect(() => {

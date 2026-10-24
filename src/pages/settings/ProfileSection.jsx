@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
 import useResource from '../../hooks/useResource.js';
 import { sendResetCode, throttleMessage } from '../../lib/passwordReset.js';
+import { PIX_TYPE_LABEL, pixKeyNotice } from '../../lib/payment.js';
 import { maskPhone } from '../../lib/phone.js';
 
 const CLIENT_URL = (import.meta.env.VITE_CLIENT_URL ?? 'https://stores.delivroo.app.br').replace(/\/$/, '');
@@ -54,7 +55,14 @@ export default function ProfileSection() {
   const [newCity, setNewCity] = useState(null);
   const [saving, setSaving] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const set = (k) => (e) => setF((x) => ({ ...x, [k]: k === 'phone' ? maskPhone(e.target.value) : e.target.value }));
+  // chave Pix: se puder ser CPF ou telefone, a API pede para a loja escolher; o erro aparece junto do campo
+  const [pixType, setPixType] = useState(null);
+  const [pixAsk, setPixAsk] = useState(null); // lista de tipos possíveis
+  const [pixErr, setPixErr] = useState(null);
+  const set = (k) => (e) => {
+    if (k === 'pixKey') { setPixType(null); setPixAsk(null); setPixErr(null); }
+    setF((x) => ({ ...x, [k]: k === 'phone' ? maskPhone(e.target.value) : e.target.value }));
+  };
   const link = `${CLIENT_URL}/${store.slug}`;
 
   async function save(e) {
@@ -68,11 +76,19 @@ export default function ProfileSection() {
       const next = await Store.update({
         name: f.name.trim(), phone: f.phone, ...(changingCity && newCity ? { ibgeCityId: newCity.ibgeId } : {}),
         street: t(f.street), number: t(f.number), complement: t(f.complement), district: t(f.district), zipCode: t(f.zipCode),
-        bgColor: f.bgColor, textColor: f.textColor, pixKey: t(f.pixKey), pixBeneficiary: t(f.pixBeneficiary),
+        bgColor: f.bgColor, textColor: f.textColor, pixKey: t(f.pixKey), ...(pixType && t(f.pixKey) ? { pixKeyType: pixType } : {}), pixBeneficiary: t(f.pixBeneficiary),
         waitMinMinutes: n(f.waitMin), waitMaxMinutes: n(f.waitMax),
       });
       setStore(next); setChangingCity(false); setNewCity(null); success('Dados da loja salvos.');
-    } catch (err) { error(err.details?.length ? err.details.map((d) => d.message).join(' · ') : err.message); } finally { setSaving(false); }
+      setPixType(null); setPixAsk(null); setPixErr(null);
+      setF((x) => ({ ...x, pixKey: next.pixKey ?? '' })); // mostra a chave já no formato correto
+    } catch (err) {
+      if (err.code === 'PIX_KEY_AMBIGUOUS' || err.code === 'PIX_KEY_INVALID') {
+        setPixErr(err.message);
+        setPixAsk(err.code === 'PIX_KEY_AMBIGUOUS' ? (err.candidates ?? []).map((c) => c.type) : null);
+        setSaving(false);
+        return;
+      } error(err.details?.length ? err.details.map((d) => d.message).join(' · ') : err.message); } finally { setSaving(false); }
   }
 
   async function copy() {
@@ -143,9 +159,23 @@ export default function ProfileSection() {
           <Field label="Tempo máximo (min)">{(id) => <Input id={id} type="number" min={0} max={600} value={f.waitMax} onChange={set('waitMax')} placeholder="45" />}</Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Chave PIX">{(id) => <Input id={id} maxLength={140} value={f.pixKey} onChange={set('pixKey')} />}</Field>
-          <Field label="Beneficiário do PIX">{(id) => <Input id={id} maxLength={140} value={f.pixBeneficiary} onChange={set('pixBeneficiary')} />}</Field>
+          <Field label="Chave PIX" error={pixErr} hint="CPF, CNPJ, telefone com DDD, e-mail ou chave aleatória. Pode digitar do jeito que quiser: arrumamos o formato.">{(id) => <Input id={id} maxLength={140} value={f.pixKey} onChange={set('pixKey')} />}</Field>
+          <Field label="Beneficiário do PIX" hint="Nome que aparece no app do banco do cliente (até 25 letras no QR code).">{(id) => <Input id={id} maxLength={140} value={f.pixBeneficiary} onChange={set('pixBeneficiary')} />}</Field>
         </div>
+        {pixAsk?.length > 0 && (
+          <div role="group" aria-label="Tipo da chave Pix" className="flex flex-wrap items-center gap-2 rounded-xl bg-butter/30 px-3 py-2 text-sm text-amber-900">
+            <span className="font-semibold">Esta chave é:</span>
+            {pixAsk.map((t) => (
+              <button key={t} type="button" onClick={() => { setPixType(t); setPixErr(null); }}
+                className={`rounded-full border px-3 py-1 font-bold ${pixType === t ? 'border-orange bg-orange text-white' : 'border-amber-300 bg-white'}`}>{PIX_TYPE_LABEL[t] ?? t}</button>
+            ))}
+            {pixType && <span>Agora é só salvar.</span>}
+          </div>
+        )}
+        {(() => {
+          const n = f.pixKey.trim() === (store.pixKey ?? '') ? pixKeyNotice(store.pixKeyStatus) : null;
+          return n && <p role={n.tone === 'warn' ? 'alert' : undefined} className={`rounded-xl px-3 py-2 text-sm ${n.tone === 'warn' ? 'bg-butter/30 font-semibold text-amber-900' : 'bg-mint-light text-emerald-800'}`}>{n.text}</p>;
+        })()}
       </Card>
 
       <PasswordCard />

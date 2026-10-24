@@ -79,6 +79,7 @@ export const Groups = {
 export const Orders = {
   list: (query, signal) => request('/api/stores/orders', { query, signal }),
   get: (id) => request(`/api/stores/orders/${id}`),
+  confirmPayment: (id) => post(`/api/stores/orders/${id}/payment/confirm`),
   setStatus: (id, status, reason) => post(`/api/stores/orders/${id}/status`, { status, ...(reason ? { reason } : {}) }),
 };
 
