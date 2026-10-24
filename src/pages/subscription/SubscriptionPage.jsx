@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Subscription } from '../../api/index.js';
 import Icon from '../../components/Icon.jsx';
 import { Badge, Button, Card, Loading, PageHeader, cx } from '../../components/ui.jsx';
@@ -9,6 +9,7 @@ import {
   BILLING_LABEL, BILLING_TONE, INVOICE_LABEL, formatDay, isRestricted, openInvoice, statusSummary,
 } from '../../lib/billing.js';
 import { formatBRL } from '../../lib/money.js';
+import { qrSvg } from '../../lib/qr.js';
 
 const TONE_CLS = { ok: 'bg-mint-light text-mint', warn: 'bg-butter/40 text-amber-900', bad: 'bg-cherry/10 text-cherry' };
 const INVOICE_CLS = { OPEN: 'bg-butter/40 text-amber-900', PAID: 'bg-mint-light text-mint', VOID: 'bg-ink/10 text-ink-soft' };
@@ -25,6 +26,15 @@ function CopyButton({ text, label = 'Copiar' }) {
   );
 }
 
+/** QR do Pix (copia e cola da fatura). Vai como imagem: o texto do SVG não é injetado na página. */
+function PixQr({ payload }) {
+  const src = useMemo(() => {
+    try { return `data:image/svg+xml;utf8,${encodeURIComponent(qrSvg(payload))}`; } catch { return null; }
+  }, [payload]);
+  if (!src) return null;
+  return <img src={src} alt="QR code do Pix" data-testid="pix-qr" className="mx-auto size-48 rounded-xl bg-white p-1" />;
+}
+
 function PixBox({ pix, invoice }) {
   if (!pix) {
     return <p className="rounded-xl bg-cream-2 px-3 py-2 text-sm text-ink-soft">A chave Pix do Delivroo ainda não foi configurada. Fale com o suporte do Delivroo para receber os dados de pagamento.</p>;
@@ -32,6 +42,17 @@ function PixBox({ pix, invoice }) {
   return (
     <div className="rounded-xl border border-line bg-cream p-4" data-testid="pix-box">
       <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Pague via Pix{pix.keyType ? ` (${pix.keyType})` : ''}</p>
+      {pix.payload && (
+        <div className="mt-3 space-y-2">
+          <PixQr payload={pix.payload} />
+          <p className="text-center text-xs text-ink-soft">Abra o app do seu banco e pague com QR code. O valor já vem preenchido.</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-lg bg-white px-2.5 py-1.5 text-sm font-semibold" data-testid="pix-copy-paste">{pix.payload}</code>
+            <CopyButton text={pix.payload} label="Copiar copia e cola" />
+          </div>
+          <p className="pt-1 text-xs font-bold uppercase tracking-wide text-ink-soft">Ou use a chave</p>
+        </div>
+      )}
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <code className="break-all rounded-lg bg-white px-2.5 py-1.5 text-[15px] font-bold" data-testid="pix-key">{pix.key}</code>
         <CopyButton text={pix.key} label="Copiar chave" />
